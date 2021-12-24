@@ -26,4 +26,7 @@ export class Post {
 
   @Column()
   title!: string;
+
+  @Column()
+  header: string;
 }
