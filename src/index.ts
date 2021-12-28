@@ -1,23 +1,31 @@
-import { createConnection } from 'typeorm';
-import { dbConfig } from './config/db';
+import { ConnectionOptions, createConnection } from 'typeorm';
+import { createDBConfig } from './config/db';
 import express from 'express';
 
-// import { ApolloServer } from 'apollo-server-express';
+import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
 import { HelloResolver } from './resolvers/hello';
 
+import * as dotenv from 'dotenv';
+
 const main = async () => {
-  require('dotenv').config();
-  const connection = await createConnection(dbConfig);
+  dotenv.config();
 
   const app = express();
 
-  // const apolloServer = new ApolloServer({
-  //   schema: await buildSchema({
-  //     resolvers: [HelloResolver],
-  //     validate: false,
-  //   }),
-  // });
+  const configOptions = createDBConfig(
+    process.env.DB_USER,
+    process.env.DB_PASS,
+    process.env.DB_NAME
+  ) as ConnectionOptions;
+
+  const connection = await createConnection(configOptions);
+  const apolloServer = new ApolloServer({
+    schema: await buildSchema({
+      resolvers: [HelloResolver],
+      validate: false,
+    }),
+  });
 
   app.listen(4000, () => {
     console.log('started the express app');

@@ -1,24 +1,26 @@
 import { ConnectionOptions } from 'typeorm';
 import { Post } from '../entities/Post';
+import * as dotenv from 'dotenv';
+import { join } from 'path';
 
-export const dbConfig: ConnectionOptions = {
+export const createDBConfig = (
+  username: any,
+  password: any,
+  database: any
+) => ({
   type: 'postgres',
   host: 'localhost',
   port: 5432,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-//   entities: [Post],
+  username,
+  password,
+  database,
   logging: false,
-  entities: ['src/entities/**/*.ts'],
-  migrations: ['src/migration/**/*.ts'],
-  subscribers: ['src/subscriber/**/*.ts'],
+  migrations: [join(__dirname, '**', '*.migration.{ts,js}')],
+  entities: [join(__dirname, '**', '*.entity.{ts,js}')],
   synchronize: true,
   cli: {
     entitiesDir: 'src/entities',
     migrationsDir: 'src/migration',
     subscribersDir: 'src/subscriber',
   },
-};
-
-module.exports = dbConfig;
+});
