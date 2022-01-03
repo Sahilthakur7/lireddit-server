@@ -1,3 +1,4 @@
+import { Field, Int, ObjectType } from 'type-graphql';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,17 +7,21 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+@ObjectType()
 @Entity()
 export class Post {
+  @Field()
   @PrimaryGeneratedColumn()
   id!: number;
 
+  @Field()
   @CreateDateColumn({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP(6)',
   })
   createdAt!: Date;
 
+  @Field()
   @UpdateDateColumn({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP(6)',
@@ -24,6 +29,7 @@ export class Post {
   })
   updatedAt!: Date;
 
+  @Field()
   @Column()
   title!: string;
 
