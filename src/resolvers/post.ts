@@ -40,7 +40,39 @@ export class PostResolver {
       .values([{ title }])
       .execute();
 
-      console.log("Post----", post.raw);
-      return post.raw[0];
+    return post.raw[0];
+  }
+
+  @Mutation(() => Post)
+  async updatePost(
+    @Ctx() context: MyContext,
+    @Arg('title', () => String) title: string,
+    @Arg('id') id: string
+  ): Promise<Post> {
+    const post = await context.connection
+      .createQueryBuilder()
+      .update(Post)
+      .set({ title })
+      .where('id = :id', { id })
+      .returning('*')
+      .updateEntity(true)
+      .execute();
+
+    return post.raw[0];
+  }
+
+  @Mutation(() => Boolean)
+  async deletePost(
+    @Ctx() context: MyContext,
+    @Arg('id') id: string
+  ): Promise<boolean> {
+    const post = await context.connection
+      .createQueryBuilder()
+      .delete()
+      .from(Post)
+      .where('id = :id', { id })
+      .execute();
+
+    return true;
   }
 }
