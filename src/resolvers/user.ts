@@ -8,7 +8,6 @@ import {
   Query,
   Resolver,
 } from 'type-graphql';
-import { Post } from '../entities/Post.entity';
 import { User } from '../entities/User.entity';
 import { MyContext } from '../types';
 
@@ -20,9 +19,17 @@ class RegisterUserInput {
   password!: string;
 }
 
+@InputType()
+class UpdateUserInput {
+  @Field()
+  username!: string;
+  @Field()
+  password!: string;
+}
+
 @Resolver()
 export class UserResolver {
-  @Query(() => [User], {nullable: true})
+  @Query(() => [User], { nullable: true })
   async users(@Ctx() context: MyContext): Promise<Array<User>> {
     const allUsers = await context.connection
       .getRepository(User)
@@ -32,11 +39,11 @@ export class UserResolver {
     return allUsers;
   }
 
-  @Mutation(() => User)
+  @Mutation(() => User!)
   async registerUser(
     @Ctx() context: MyContext,
     @Arg('options') options: RegisterUserInput
-  ): Promise<boolean> {
+  ) {
     const user = await context.connection
       .createQueryBuilder()
       .insert()
@@ -44,38 +51,37 @@ export class UserResolver {
       .values([{ ...options }])
       .execute();
 
-	  console.log("user----", user.raw)
-
     return user.raw[0];
   }
 
-  @Mutation(() => Post)
-  async updatePost(
+  @Mutation(() => User)
+  async updateUser(
     @Ctx() context: MyContext,
-    @Arg('title', () => String) title: string,
-    @Arg('id') id: string
-  ): Promise<Post> {
-    const post = await context.connection
-      .createQueryBuilder()
-      .update(Post)
-      .set({ title })
-      .where('id = :id', { id })
-      .returning('*')
-      .updateEntity(true)
-      .execute();
+    @Arg('options') options: UpdateUserInput,
+    @Arg('id', () => Int) id: number
+  ): Promise<User | undefined> {
+    const user = await context.connection
+      .getRepository(User)
+      .createQueryBuilder('user')
+      .where('user.id = :id', { id })
+      .getOne();
 
-    return post.raw[0];
+    const updatedUser = await context.connection
+      .getRepository(User)
+      .save({ ...user, ...options });
+
+    return updatedUser;
   }
 
   @Mutation(() => Boolean)
-  async deletePost(
+  async deleteUser(
     @Ctx() context: MyContext,
     @Arg('id') id: string
   ): Promise<boolean> {
-    const post = await context.connection
+    const user = await context.connection
       .createQueryBuilder()
       .delete()
-      .from(Post)
+      .from(User)
       .where('id = :id', { id })
       .execute();
 
