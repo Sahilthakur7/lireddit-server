@@ -5,14 +5,16 @@ import {
   InputType,
   Int,
   Mutation,
+  ObjectType,
   Query,
   Resolver,
 } from 'type-graphql';
 import { User } from '../entities/User.entity';
 import { MyContext } from '../types';
+import argon2 from 'argon2';
 
 @InputType()
-class RegisterUserInput {
+class UsernamePasswordInput {
   @Field()
   username!: string;
   @Field()
@@ -25,6 +27,15 @@ class UpdateUserInput {
   username!: string;
   @Field()
   password!: string;
+}
+
+@ObjectType()
+class UserResponse {
+  @Field(() => [Error], { nullable: true })
+  errors?: Error[];
+
+  @Field(() => User, { nullable: true })
+  user?: User;
 }
 
 @Resolver()
@@ -42,13 +53,20 @@ export class UserResolver {
   @Mutation(() => User!)
   async registerUser(
     @Ctx() context: MyContext,
-    @Arg('options') options: RegisterUserInput
+    @Arg('options') options: UsernamePasswordInput
   ) {
+    const hashedPassword = await argon2.hash(options?.password);
+
+    const values: UsernamePasswordInput = {
+      ...options,
+      password: hashedPassword,
+    };
+
     const user = await context.connection
       .createQueryBuilder()
       .insert()
       .into(User)
-      .values([{ ...options }])
+      .values([{ ...values }])
       .execute();
 
     return user.raw[0];
@@ -60,6 +78,13 @@ export class UserResolver {
     @Arg('options') options: UpdateUserInput,
     @Arg('id', () => Int) id: number
   ): Promise<User | undefined> {
+    const hashedPassword = await argon2.hash(options?.password);
+
+    const values: UpdateUserInput = {
+      ...options,
+      password: hashedPassword,
+    };
+
     const user = await context.connection
       .getRepository(User)
       .createQueryBuilder('user')
@@ -68,7 +93,7 @@ export class UserResolver {
 
     const updatedUser = await context.connection
       .getRepository(User)
-      .save({ ...user, ...options });
+      .save({ ...user, ...values });
 
     return updatedUser;
   }
@@ -86,5 +111,21 @@ export class UserResolver {
       .execute();
 
     return true;
+  }
+
+  @Mutation(() => UserResponse)
+  async login(
+    @Ctx() context: MyContext,
+    @Arg('options') options: UsernamePasswordInput
+  ) {
+    const user = await context.connection
+      .getRepository(User)
+      .createQueryBuilder('user')
+      .where('user.username = :username', { username: options.username })
+      .getOne();
+
+    if (!user) {
+      errors: [{}];
+    }
   }
 }
